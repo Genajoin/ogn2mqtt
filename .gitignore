@@ -1,0 +1,7 @@
+.env
+.env.production
+deploy*.sh
+C*E.md
+package-lock.json
+node_modules
+coverage
