@@ -83,7 +83,7 @@ OGN_APRS_SERVER=aprs.glidernet.org
 OGN_APRS_PORT=14580
 OGN_APRS_CALLSIGN=OGN2MQTT
 OGN_APRS_PASSCODE=-1
-OGN_APRS_FILTER=m/120 46.5/13.5  # Альпы, радиус 120км
+OGN_APRS_FILTER=r/46.5/10/300  # Альпы, радиус 300км
 ```
 
 ### MQTT настройки
