@@ -42,7 +42,9 @@ class OGN2MQTT {
                 url: process.env.TARGET_MQTT_URL || 'tcp://localhost:1883',
                 clientId: process.env.TARGET_MQTT_CLIENT_ID || 'ogn2mqtt-bridge',
                 cleanSession: process.env.TARGET_MQTT_CLEAN_SESSION !== 'false',
-                topic: process.env.TARGET_MQTT_TOPIC || 'fb/b/ogn/f/1'
+                topic: process.env.TARGET_MQTT_TOPIC || 'fb/b/ogn/f/1',
+                username: process.env.TARGET_MQTT_USERNAME,
+                password: process.env.TARGET_MQTT_PASSWORD
             },
             
             // Фильтрация
@@ -71,14 +73,14 @@ class OGN2MQTT {
         this.aprsParser = new APRSParser({
             allowedAircraftTypes: this.config.filtering.aircraftTypes,
             regionBounds: this.config.filtering.regionBounds
-        });
+        }, this.log.bind(this));
 
-        this.fanetConverter = new FANETConverter();
+        this.fanetConverter = new FANETConverter(this.log.bind(this));
 
         this.messageFilter = new MessageFilter({
             rateLimitSeconds: this.config.filtering.rateLimitSeconds,
             maxMessageAge: this.config.filtering.maxMessageAge
-        });
+        }, this.log.bind(this));
     }
 
     async start() {
@@ -114,13 +116,21 @@ class OGN2MQTT {
                 clientId: this.config.mqtt.clientId
             });
 
-            this.mqttClient = mqtt.connect(this.config.mqtt.url, {
+            const mqttOptions = {
                 clientId: this.config.mqtt.clientId,
                 clean: this.config.mqtt.cleanSession,
                 reconnectPeriod: 5000,
                 connectTimeout: 30000,
                 keepalive: 60
-            });
+            };
+
+            // Добавляем аутентификацию если указана
+            if (this.config.mqtt.username) {
+                mqttOptions.username = this.config.mqtt.username;
+                mqttOptions.password = this.config.mqtt.password || '';
+            }
+
+            this.mqttClient = mqtt.connect(this.config.mqtt.url, mqttOptions);
 
             this.mqttClient.on('connect', () => {
                 this.log('info', 'MQTT подключение успешно');
@@ -143,7 +153,7 @@ class OGN2MQTT {
     }
 
     async connectOGN() {
-        this.ognClient = new OGNClient(this.config.ogn);
+        this.ognClient = new OGNClient(this.config.ogn, this.log.bind(this));
         
         // Обработчики событий OGN
         this.ognClient.on('connect', () => {
