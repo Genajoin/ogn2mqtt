@@ -20,10 +20,11 @@ describe('MessageFilter', () => {
   });
 
   afterEach(() => {
-    // Останавливаем все таймеры
-    if (filter.cacheCleanupTimer) {
-      clearInterval(filter.cacheCleanupTimer);
+    // Очищаем ресурсы
+    if (filter && filter.cleanup) {
+      filter.cleanup();
     }
+    jest.clearAllTimers();
   });
 
   describe('конструктор и конфигурация', () => {

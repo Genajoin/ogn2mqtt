@@ -15,6 +15,7 @@ describe('OGN2MQTT Integration Tests', () => {
   let app;
   let mockMqttClient;
   let mockOgnClient;
+  let components = [];
 
   beforeEach(() => {
     // Мокаем MQTT клиент
@@ -56,6 +57,18 @@ describe('OGN2MQTT Integration Tests', () => {
     if (app && app.stop) {
       app.stop();
     }
+    // Очищаем таймеры MessageFilter
+    if (app && app.messageFilter && app.messageFilter.cleanup) {
+      app.messageFilter.cleanup();
+    }
+    // Очищаем дополнительные компоненты
+    components.forEach(component => {
+      if (component && component.cleanup) {
+        component.cleanup();
+      }
+    });
+    components = [];
+    
     jest.clearAllMocks();
     mockExit.mockClear();
     
@@ -64,6 +77,11 @@ describe('OGN2MQTT Integration Tests', () => {
     delete process.env.TARGET_MQTT_URL;
     delete process.env.TARGET_MQTT_TOPIC;
     delete process.env.ENABLE_DEBUG;
+    delete process.env.AIRCRAFT_TYPES;
+    delete process.env.REGION_LAT_MIN;
+    delete process.env.REGION_LAT_MAX;
+    delete process.env.TARGET_MQTT_CLIENT_ID;
+    delete process.env.TARGET_MQTT_CLEAN_SESSION;
   });
 
   describe('инициализация приложения', () => {
@@ -71,7 +89,7 @@ describe('OGN2MQTT Integration Tests', () => {
       expect(app.config.ogn.server).toBe('test.server.com');
       expect(app.config.mqtt.url).toBe('tcp://test.mqtt:1883');
       expect(app.config.mqtt.topic).toBe('test/topic');
-      expect(app.config.filtering.aircraftTypes).toEqual([1, 6, 7]);
+      expect(app.config.filtering.aircraftTypes).toEqual([1, 6, 7, 8, 9]);
     });
 
     test('должен инициализировать все компоненты', () => {
@@ -82,14 +100,26 @@ describe('OGN2MQTT Integration Tests', () => {
     });
 
     test('должен использовать настройки по умолчанию', () => {
+      // Сохраняем оригинальные значения
+      const originalServer = process.env.OGN_APRS_SERVER;
+      const originalMqttUrl = process.env.TARGET_MQTT_URL;
+      const originalTopic = process.env.TARGET_MQTT_TOPIC;
+      
       delete process.env.OGN_APRS_SERVER;
       delete process.env.TARGET_MQTT_URL;
+      delete process.env.TARGET_MQTT_TOPIC;
       
       const defaultApp = new OGN2MQTT();
+      components.push(defaultApp.messageFilter); // Добавляем для cleanup
       
       expect(defaultApp.config.ogn.server).toBe('aprs.glidernet.org');
       expect(defaultApp.config.mqtt.url).toBe('tcp://localhost:1883');
       expect(defaultApp.config.mqtt.topic).toBe('fb/b/ogn/f/1');
+      
+      // Восстанавливаем оригинальные значения
+      if (originalServer) process.env.OGN_APRS_SERVER = originalServer;
+      if (originalMqttUrl) process.env.TARGET_MQTT_URL = originalMqttUrl;  
+      if (originalTopic) process.env.TARGET_MQTT_TOPIC = originalTopic;
     });
   });
 
@@ -110,7 +140,13 @@ describe('OGN2MQTT Integration Tests', () => {
       expect(app.connectOGN).toHaveBeenCalled();
     });
 
-    test('должен создавать компоненты при инициализации', () => {
+    test('должен создавать компоненты при инициализации', async () => {
+      // Мокаем методы подключения для вызова connectOGN
+      app.connectMQTT = jest.fn().mockResolvedValue();
+      
+      // Запускаем start() чтобы вызвать connectOGN()
+      await app.start();
+      
       expect(OGNClient).toHaveBeenCalledWith({
         server: 'test.server.com',
         port: 14580,
@@ -119,7 +155,7 @@ describe('OGN2MQTT Integration Tests', () => {
         filter: expect.any(String),
         appName: 'ogn2mqtt',
         appVersion: '1.0.0'
-      });
+      }, expect.any(Function));
     });
   });
 
@@ -236,6 +272,7 @@ describe('OGN2MQTT Integration Tests', () => {
       process.env.REGION_LAT_MAX = '47.0';
       
       const customApp = new OGN2MQTT();
+      components.push(customApp.messageFilter); // Добавляем для cleanup
       
       expect(customApp.config.filtering.aircraftTypes).toEqual([1, 7]);
       expect(customApp.config.filtering.regionBounds.latMin).toBe(45.0);
@@ -247,6 +284,7 @@ describe('OGN2MQTT Integration Tests', () => {
       process.env.TARGET_MQTT_CLEAN_SESSION = 'false';
       
       const customApp = new OGN2MQTT();
+      components.push(customApp.messageFilter); // Добавляем для cleanup
       
       expect(customApp.config.mqtt.clientId).toBe('custom-client');
       expect(customApp.config.mqtt.cleanSession).toBe(false);
@@ -255,7 +293,17 @@ describe('OGN2MQTT Integration Tests', () => {
 
   describe('граничные случаи', () => {
     test('должен обрабатывать пустые APRS сообщения', async () => {
+      // Мокаем методы подключения
+      app.connectMQTT = jest.fn().mockResolvedValue();
+      app.connectOGN = jest.fn().mockResolvedValue();
+      
+      // Устанавливаем мок OGN клиент
+      app.ognClient = mockOgnClient;
+      
       await app.start();
+      
+      // Проверяем что обработчик APRS сообщений был установлен
+      expect(mockOgnClient.on).toHaveBeenCalledWith('aprs-message', expect.any(Function));
       
       const aprsHandler = mockOgnClient.on.mock.calls.find(
         call => call[0] === 'aprs-message'
@@ -269,6 +317,13 @@ describe('OGN2MQTT Integration Tests', () => {
     });
 
     test('должен обрабатывать некорректные бинарные данные', async () => {
+      // Мокаем методы подключения
+      app.connectMQTT = jest.fn().mockResolvedValue();
+      app.connectOGN = jest.fn().mockResolvedValue();
+      
+      // Устанавливаем мок OGN клиент
+      app.ognClient = mockOgnClient;
+      
       await app.start();
       
       // Мокаем возвращение невалидных данных от конвертера

@@ -42,14 +42,14 @@ class OGN2MQTT {
         url: process.env.TARGET_MQTT_URL || 'tcp://localhost:1883',
         clientId: process.env.TARGET_MQTT_CLIENT_ID || 'ogn2mqtt-bridge',
         cleanSession: process.env.TARGET_MQTT_CLEAN_SESSION !== 'false',
-        topic: process.env.TARGET_MQTT_TOPIC || 'fb/b/0/f/1',
+        topic: process.env.TARGET_MQTT_TOPIC || 'fb/b/ogn/f/1',
         username: process.env.TARGET_MQTT_USERNAME,
         password: process.env.TARGET_MQTT_PASSWORD
       },
             
       // Фильтрация
       filtering: {
-        aircraftTypes: (process.env.AIRCRAFT_TYPES || '1,6,7').split(',').map(t => parseInt(t.trim())),
+        aircraftTypes: (process.env.AIRCRAFT_TYPES || '1,6,7,8,9').split(',').map(t => parseInt(t.trim())),
         regionBounds: {
           latMin: parseFloat(process.env.REGION_LAT_MIN || '44.0'),
           latMax: parseFloat(process.env.REGION_LAT_MAX || '48.0'),
@@ -283,6 +283,10 @@ class OGN2MQTT {
     if (this.mqttClient) {
       this.mqttClient.end();
     }
+    
+    if (this.messageFilter && this.messageFilter.cleanup) {
+      this.messageFilter.cleanup();
+    }
         
     this.log('info', 'OGN2MQTT bridge остановлен');
   }
@@ -300,34 +304,39 @@ class OGN2MQTT {
   }
 }
 
-// Обработка сигналов завершения
-const bridge = new OGN2MQTT();
+// Экспорт класса для тестов
+module.exports = OGN2MQTT;
 
-process.on('SIGINT', async () => {
-  console.log('\nПолучен сигнал SIGINT, завершение работы...');
-  await bridge.stop();
-  process.exit(0);
-});
+// Обработка сигналов завершения - только если запущен напрямую
+if (require.main === module) {
+  const bridge = new OGN2MQTT();
 
-process.on('SIGTERM', async () => {
-  console.log('\nПолучен сигнал SIGTERM, завершение работы...');
-  await bridge.stop();
-  process.exit(0);
-});
+  process.on('SIGINT', async () => {
+    console.log('\nПолучен сигнал SIGINT, завершение работы...');
+    await bridge.stop();
+    process.exit(0);
+  });
 
-// Обработка необработанных ошибок
-process.on('uncaughtException', (error) => {
-  console.error('Необработанная ошибка:', error);
-  process.exit(1);
-});
+  process.on('SIGTERM', async () => {
+    console.log('\nПолучен сигнал SIGTERM, завершение работы...');
+    await bridge.stop();
+    process.exit(0);
+  });
 
-process.on('unhandledRejection', (reason, _promise) => {
-  console.error('Необработанное отклонение промиса:', reason);
-  process.exit(1);
-});
+  // Обработка необработанных ошибок
+  process.on('uncaughtException', (error) => {
+    console.error('Необработанная ошибка:', error);
+    process.exit(1);
+  });
 
-// Запуск bridge
-bridge.start().catch(error => {
-  console.error('Критическая ошибка запуска:', error);
-  process.exit(1);
-});
+  process.on('unhandledRejection', (reason, _promise) => {
+    console.error('Необработанное отклонение промиса:', reason);
+    process.exit(1);
+  });
+
+  // Запуск bridge
+  bridge.start().catch(error => {
+    console.error('Критическая ошибка запуска:', error);
+    process.exit(1);
+  });
+}

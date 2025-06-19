@@ -94,17 +94,20 @@ describe('OGNClient', () => {
     });
 
     test('должен отправлять логин после подключения', async () => {
-      const connectPromise = client.connect();
-      
+      // Мокаем успешное подключение ДО вызова connect
       mockSocket.connect.mockImplementation((port, server, callback) => {
-        setTimeout(callback, 0);
+        // Сначала вызываем callback (событие TCP подключения)
+        setTimeout(() => {
+          callback();
+          // Затем эмитируем событие 'connect'
+          setTimeout(() => {
+            mockSocket.emit('connect');
+          }, 0);
+        }, 0);
       });
       
-      setTimeout(() => {
-        mockSocket.emit('connect');
-      }, 10);
-      
-      jest.advanceTimersByTime(20);
+      const connectPromise = client.connect();
+      jest.advanceTimersByTime(10);
       await connectPromise;
       
       expect(mockSocket.write).toHaveBeenCalledWith(
@@ -113,30 +116,33 @@ describe('OGNClient', () => {
     });
 
     test('должен обрабатывать ошибки подключения', async () => {
+      // Мокаем ошибку подключения ДО вызова connect
+      mockSocket.connect.mockImplementation((port, server, callback) => {
+        setTimeout(() => {
+          mockSocket.emit('error', new Error('Connection failed'));
+        }, 0);
+      });
+      
       const connectPromise = client.connect();
-      
-      setTimeout(() => {
-        mockSocket.emit('error', new Error('Connection failed'));
-      }, 10);
-      
-      jest.advanceTimersByTime(20);
+      jest.advanceTimersByTime(10);
       
       await expect(connectPromise).rejects.toThrow('Connection failed');
       expect(client.connected).toBe(false);
     });
 
     test('должен устанавливать таймеры после успешного подключения', async () => {
-      const connectPromise = client.connect();
-      
+      // Мокаем успешное подключение ДО вызова connect
       mockSocket.connect.mockImplementation((port, server, callback) => {
-        setTimeout(callback, 0);
+        setTimeout(() => {
+          callback();
+          setTimeout(() => {
+            mockSocket.emit('connect');
+          }, 0);
+        }, 0);
       });
       
-      setTimeout(() => {
-        mockSocket.emit('connect');
-      }, 10);
-      
-      jest.advanceTimersByTime(20);
+      const connectPromise = client.connect();
+      jest.advanceTimersByTime(10);
       await connectPromise;
       
       expect(client.keepAliveTimer).toBeDefined();
@@ -146,18 +152,19 @@ describe('OGNClient', () => {
 
   describe('обработка данных', () => {
     beforeEach(async () => {
-      // Подключаемся для тестов обработки данных
-      const connectPromise = client.connect();
-      
+      // Мокаем успешное подключение ДО вызова connect
       mockSocket.connect.mockImplementation((port, server, callback) => {
-        setTimeout(callback, 0);
+        setTimeout(() => {
+          callback();
+          setTimeout(() => {
+            mockSocket.emit('connect');
+          }, 0);
+        }, 0);
       });
       
-      setTimeout(() => {
-        mockSocket.emit('connect');
-      }, 10);
-      
-      jest.advanceTimersByTime(20);
+      // Подключаемся для тестов обработки данных
+      const connectPromise = client.connect();
+      jest.advanceTimersByTime(10);
       await connectPromise;
     });
 
@@ -273,8 +280,25 @@ describe('OGNClient', () => {
   });
 
   describe('переподключение', () => {
+    beforeEach(async () => {
+      // Мокаем успешное подключение ДО вызова connect
+      mockSocket.connect.mockImplementation((port, server, callback) => {
+        setTimeout(() => {
+          callback();
+          setTimeout(() => {
+            mockSocket.emit('connect');
+          }, 0);
+        }, 0);
+      });
+      
+      // Подключаемся для тестов переподключения
+      const connectPromise = client.connect();
+      jest.advanceTimersByTime(10);
+      await connectPromise;
+    });
+
     test('должен планировать переподключение при закрытии соединения', () => {
-      client.connected = true;
+      expect(client.connected).toBe(true);
       
       mockSocket.emit('close');
       
@@ -284,13 +308,15 @@ describe('OGNClient', () => {
 
     test('должен увеличивать задержку при повторных попытках', () => {
       client.reconnectAttempts = 2;
+      const initialDelay = client.config.reconnectInterval;
+      const expectedDelay = Math.min(initialDelay * Math.pow(2, 2), 300000);
       
       mockSocket.emit('close');
       
       // Проверяем, что таймер установлен с увеличенной задержкой
       expect(setTimeout).toHaveBeenCalledWith(
         expect.any(Function),
-        expect.any(Number)
+        expectedDelay
       );
     });
 
@@ -303,22 +329,38 @@ describe('OGNClient', () => {
       mockSocket.emit('close');
       
       expect(maxReconnectHandler).toHaveBeenCalled();
-      expect(client.reconnectTimer).toBeNull();
+      expect(client.reconnectTimer).toBeUndefined();
     });
 
     test('должен успешно переподключаться', async () => {
       client.reconnectAttempts = 1;
       
-      // Симулируем закрытие соединения
+      // Обновляем мок для нового подключения
+      const newMockSocket = new EventEmitter();
+      newMockSocket.connect = jest.fn();
+      newMockSocket.write = jest.fn();
+      newMockSocket.destroy = jest.fn();
+      newMockSocket.setEncoding = jest.fn();
+      newMockSocket.setTimeout = jest.fn();
+      
+      net.Socket.mockImplementation(() => newMockSocket);
+      
+      // Симулируем закрытие текущего соединения
       mockSocket.emit('close');
       
       // Продвигаем время для запуска переподключения
-      jest.advanceTimersByTime(2000);
+      const delay = Math.min(client.config.reconnectInterval * Math.pow(2, 1), 300000);
+      jest.advanceTimersByTime(delay + 100);
       
       // Симулируем успешное переподключение
-      setTimeout(() => {
-        mockSocket.emit('connect');
-      }, 10);
+      newMockSocket.connect.mockImplementation((port, server, callback) => {
+        setTimeout(() => {
+          callback();
+          setTimeout(() => {
+            newMockSocket.emit('connect');
+          }, 5);
+        }, 5);
+      });
       
       jest.advanceTimersByTime(20);
       
@@ -369,34 +411,36 @@ describe('OGNClient', () => {
 
   describe('обработка ошибок сокета', () => {
     test('должен обрабатывать таймауты', async () => {
-      const connectPromise = client.connect();
-      
+      // Мокаем подключение и таймаут ДО вызова connect
       mockSocket.connect.mockImplementation((port, server, callback) => {
-        setTimeout(callback, 0);
+        setTimeout(() => {
+          callback();
+          setTimeout(() => {
+            mockSocket.emit('connect');
+            setTimeout(() => {
+              mockSocket.emit('timeout');
+            }, 0);
+          }, 0);
+        }, 0);
       });
       
-      setTimeout(() => {
-        mockSocket.emit('connect');
-        mockSocket.emit('timeout');
-      }, 10);
-      
-      jest.advanceTimersByTime(20);
+      const connectPromise = client.connect();
+      jest.advanceTimersByTime(10);
       await connectPromise;
       
       expect(mockSocket.destroy).toHaveBeenCalled();
     });
 
-    test('должен эмитировать события ошибок', async () => {
+    test('должен эмитировать события ошибок', () => {
       const errorHandler = jest.fn();
       client.on('error', errorHandler);
       
       const testError = new Error('Test error');
       
-      setTimeout(() => {
-        mockSocket.emit('error', testError);
-      }, 10);
+      // Установим connected в true, чтобы проверить, что ошибка его сбрасывает
+      client.connected = true;
       
-      jest.advanceTimersByTime(20);
+      mockSocket.emit('error', testError);
       
       expect(errorHandler).toHaveBeenCalledWith(testError);
       expect(client.connected).toBe(false);
@@ -408,13 +452,10 @@ describe('OGNClient', () => {
       
       client.connected = true; // Устанавливаем, что клиент был подключен
       
-      setTimeout(() => {
-        mockSocket.emit('close');
-      }, 10);
-      
-      jest.advanceTimersByTime(20);
+      mockSocket.emit('close');
       
       expect(disconnectHandler).toHaveBeenCalled();
+      expect(client.connected).toBe(false);
     });
   });
 
@@ -438,12 +479,8 @@ describe('OGNClient', () => {
       client.on('disconnect', disconnectHandler);
       
       // Множественные события connect
-      setTimeout(() => {
-        mockSocket.emit('connect');
-        mockSocket.emit('connect');
-      }, 10);
-      
-      jest.advanceTimersByTime(20);
+      mockSocket.emit('connect');
+      mockSocket.emit('connect');
       
       expect(connectHandler).toHaveBeenCalledTimes(2);
       
@@ -451,12 +488,8 @@ describe('OGNClient', () => {
       client.connected = true;
       
       // Множественные события close
-      setTimeout(() => {
-        mockSocket.emit('close');
-        mockSocket.emit('close');
-      }, 10);
-      
-      jest.advanceTimersByTime(20);
+      mockSocket.emit('close');
+      mockSocket.emit('close');
       
       expect(disconnectHandler).toHaveBeenCalledTimes(2);
     });

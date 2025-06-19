@@ -5,10 +5,24 @@ const MessageFilter = require('../lib/message-filter');
 const testData = require('./fixtures/aprs-messages');
 
 describe('Unit Tests Overview', () => {
+  let components = [];
+  
+  afterEach(() => {
+    // Очищаем все созданные фильтры
+    components.forEach(component => {
+      if (component && component.cleanup) {
+        component.cleanup();
+      }
+    });
+    components = [];
+  });
+
   test('все компоненты должны инициализироваться', () => {
     const parser = new APRSParser();
     const converter = new FANETConverter();
     const filter = new MessageFilter();
+    
+    components.push(filter);
     
     expect(parser).toBeDefined();
     expect(converter).toBeDefined();
@@ -22,6 +36,8 @@ describe('Unit Tests Overview', () => {
       cacheCleanupInterval: 999999999 // Отключаем автоочистку
     });
     
+    components.push(filter);
+    
     // Парсим сообщение
     const aprsData = parser.parse(testData.valid.paraglider.raw);
     expect(aprsData).not.toBeNull();
@@ -34,17 +50,14 @@ describe('Unit Tests Overview', () => {
     const fanetData = converter.convertToMQTTFormat(aprsData);
     expect(fanetData).toBeInstanceOf(Buffer);
     expect(fanetData.length).toBeGreaterThan(8); // Минимальный размер пакета
-    
-    // Очищаем таймер
-    if (filter.cacheCleanupTimer) {
-      clearInterval(filter.cacheCleanupTimer);
-    }
   });
 
   test('невалидные данные должны быть отклонены на каждом этапе', () => {
     const parser = new APRSParser();
     const converter = new FANETConverter();
     const filter = new MessageFilter();
+    
+    components.push(filter);
     
     // Невалидное APRS сообщение
     const invalidAprs = parser.parse('invalid message');
