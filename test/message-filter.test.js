@@ -4,6 +4,10 @@ describe('MessageFilter', () => {
   let filter;
 
   beforeEach(() => {
+    // Мокаем setInterval для Jest окружения
+    global.setInterval = jest.fn();
+    global.clearInterval = jest.fn();
+    
     filter = new MessageFilter({
       rateLimitSeconds: 1,
       maxMessageAge: 3600000, // 1 час
@@ -165,6 +169,51 @@ describe('MessageFilter', () => {
       
       jest.useRealTimers();
     });
+
+    test('должен корректно обрабатывать частые сообщения без "застревания"', () => {
+      // Упрощенный тест для проверки основной проблемы "застревания"
+      const baseTime = Date.now();
+      
+      const message1 = {
+        messageType: 'position',
+        deviceId: 'RAPID123',
+        latitude: 46.0,
+        longitude: 14.0,
+        receivedTime: new Date(baseTime)
+      };
+
+      const message2 = {
+        messageType: 'position',
+        deviceId: 'RAPID123',
+        latitude: 46.001, // значительно другая позиция
+        longitude: 14.001,
+        receivedTime: new Date(baseTime + 500) // +0.5 сек, должно блокироваться
+      };
+
+      const message3 = {
+        messageType: 'position',
+        deviceId: 'RAPID123',
+        latitude: 46.002, // еще более другая позиция
+        longitude: 14.002,
+        receivedTime: new Date(baseTime + 1100) // +1.1 сек, должно проходить
+      };
+
+      // Первое сообщение проходит
+      expect(filter.shouldProcess(message1)).toBe(true);
+      expect(filter.stats.passed).toBe(1);
+      
+      // Второе блокируется по rate limit
+      expect(filter.shouldProcess(message2)).toBe(false);
+      expect(filter.stats.filtered.rateLimited).toBe(1);
+      
+      // Третье должно пройти - это ключевая проверка против "застревания"
+      expect(filter.shouldProcess(message3)).toBe(true);
+      expect(filter.stats.passed).toBe(2);
+      
+      // Основная проверка: устройство НЕ застряло в блокировке
+      const finalDevice = filter.getDeviceInfo('RAPID123');
+      expect(finalDevice.lastMessageTime).toBeGreaterThan(baseTime);
+    });
   });
 
   describe('детекция дубликатов', () => {
@@ -297,20 +346,21 @@ describe('MessageFilter', () => {
 
   describe('статистика', () => {
     test('должен корректно подсчитывать статистику', () => {
+      const baseTime = Date.now();
       const messages = [
         {
           messageType: 'position',
           deviceId: 'TEST1',
           latitude: 46.0,
           longitude: 14.0,
-          receivedTime: new Date()
+          receivedTime: new Date(baseTime)
         },
         {
           messageType: 'position',
           deviceId: 'TEST1',
-          latitude: 46.0,
-          longitude: 14.0,
-          receivedTime: new Date()
+          latitude: 46.001, // другая позиция
+          longitude: 14.001,
+          receivedTime: new Date(baseTime + 500) // через 0.5 сек = rate limited
         },
         {
           messageType: 'position',

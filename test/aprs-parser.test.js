@@ -72,7 +72,7 @@ describe('APRSParser', () => {
 
     test('должен парсить сообщение планера', () => {
       const result = parser.parse(testData.valid.glider.raw);
-      const expected = testData.valid.glider.expected;
+      const _expected = testData.valid.glider.expected; // eslint-disable-line no-unused-vars
       
       expect(result).not.toBeNull();
       expect(result.aircraftType).toBe(1);
@@ -82,7 +82,7 @@ describe('APRSParser', () => {
 
     test('должен парсить сообщение дельтаплана', () => {
       const result = parser.parse(testData.valid.hangGlider.raw);
-      const expected = testData.valid.hangGlider.expected;
+      const _expected = testData.valid.hangGlider.expected; // eslint-disable-line no-unused-vars
       
       expect(result).not.toBeNull();
       expect(result.aircraftType).toBe(6);
@@ -92,39 +92,39 @@ describe('APRSParser', () => {
 
     test('должен парсить статусное сообщение', () => {
       const result = parser.parse(testData.valid.statusMessage.raw);
-      const expected = testData.valid.statusMessage.expected;
+      const _expected = testData.valid.statusMessage.expected;
       
       expect(result).not.toBeNull();
       expect(result.messageType).toBe('status');
-      expect(result.sourceCall).toBe(expected.sourceCall);
-      expect(result.text).toBe(expected.text);
+      expect(result.sourceCall).toBe(_expected.sourceCall);
+      expect(result.text).toBe(_expected.text);
       expect(result.receivedTime).toBeInstanceOf(Date);
     });
 
     test('должен парсить сообщение коммерческого самолета (тип 9)', () => {
       const result = parser.parse(testData.valid.commercialAircraft.raw);
-      const expected = testData.valid.commercialAircraft.expected;
+      const _expected = testData.valid.commercialAircraft.expected;
       
       expect(result).not.toBeNull();
-      expect(result.messageType).toBe(expected.messageType);
-      expect(result.sourceCall).toBe(expected.sourceCall);
-      expect(result.timestamp).toBe(expected.timestamp);
+      expect(result.messageType).toBe(_expected.messageType);
+      expect(result.sourceCall).toBe(_expected.sourceCall);
+      expect(result.timestamp).toBe(_expected.timestamp);
       
       // Проверяем координаты с допуском
-      expect(result.latitude).toBeCloseTo(expected.latitude, 5);
-      expect(result.longitude).toBeCloseTo(expected.longitude, 5);
-      expect(result.altitude).toBeCloseTo(expected.altitude, 1);
+      expect(result.latitude).toBeCloseTo(_expected.latitude, 5);
+      expect(result.longitude).toBeCloseTo(_expected.longitude, 5);
+      expect(result.altitude).toBeCloseTo(_expected.altitude, 1);
       
       expect(result.aircraftType).toBe(9);
       expect(result.aircraftTypeName).toBe('aircraft_jet');
       expect(result.addressType).toBe(1); // ICAO
-      expect(result.deviceId).toBe(expected.deviceId);
-      expect(result.climbRate).toBeCloseTo(expected.climbRate, 3);
+      expect(result.deviceId).toBe(_expected.deviceId);
+      expect(result.climbRate).toBeCloseTo(_expected.climbRate, 3);
     });
 
     test('должен парсить сообщение Lufthansa (реальные данные)', () => {
       const result = parser.parse(testData.valid.lufthansaFlight.raw);
-      const expected = testData.valid.lufthansaFlight.expected;
+      const _expected = testData.valid.lufthansaFlight.expected; // eslint-disable-line no-unused-vars
       
       expect(result).not.toBeNull();
       expect(result.aircraftType).toBe(9);
@@ -135,7 +135,7 @@ describe('APRSParser', () => {
 
     test('должен парсить сообщение самолета с поршневым двигателем (тип 8)', () => {
       const result = parser.parse(testData.valid.reciprocatingAircraft.raw);
-      const expected = testData.valid.reciprocatingAircraft.expected;
+      const _expected = testData.valid.reciprocatingAircraft.expected; // eslint-disable-line no-unused-vars
       
       expect(result).not.toBeNull();
       expect(result.aircraftType).toBe(8);
@@ -362,7 +362,7 @@ describe('APRSParser', () => {
   describe('обработка ошибок', () => {
     test('должен обрабатывать исключения при парсинге', () => {
       // Создаем специально поврежденное сообщение, которое может вызвать исключение
-      const malformedMessage = "FLR3F1234>APRS,qAS,Slovenia:/" + "X".repeat(1000);
+      const malformedMessage = 'FLR3F1234>APRS,qAS,Slovenia:/' + 'X'.repeat(1000);
       
       expect(() => parser.parse(malformedMessage)).not.toThrow();
       expect(parser.parse(malformedMessage)).toBeNull();

@@ -1,0 +1,56 @@
+{
+  "name": "FlyBeeper OGN-to-MQTT Processor",
+  "dockerComposeFile": [
+    "../../../docker-compose.yml"
+  ],
+  "service": "ogn2mqtt",
+  "workspaceFolder": "/app",
+  "shutdownAction": "none",
+  "onCreateCommand": "cd /workspace && make dev-infra",
+  "postCreateCommand": "npm install",
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.vscode-json",
+        "redhat.vscode-yaml",
+        "ms-vscode.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "hbenl.vscode-test-explorer",
+        "orta.vscode-jest"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "javascript.preferences.quoteStyle": "single",
+        "files.associations": {
+          "*.env*": "dotenv",
+          "*.md": "markdown"
+        },
+        "jest.jestCommandLine": "npm test",
+        "jest.autoRun": {
+          "watch": true,
+          "onSave": "test-src-file"
+        }
+      }
+    }
+  },
+
+  "forwardPorts": [1883, 6379, 8081, 8082],
+
+  "portsAttributes": {
+    "1883": {"label": "MQTT Broker"},
+    "6379": {"label": "Redis"},
+    "8081": {"label": "Redis Commander"},
+    "8082": {"label": "Adminer"}
+  },
+
+  "containerEnv": {
+    "NODE_ENV": "development",
+    "LOG_LEVEL": "debug",
+    "ENABLE_DEBUG": "true"
+  }
+}

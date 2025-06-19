@@ -4,7 +4,7 @@ module.exports = {
   // Валидные сообщения
   valid: {
     paraglider: {
-      raw: "FLR3F1234>APRS,qAS,Slovenia:/094530h4615.123N/01445.678E'180/025/A=002500 !W77! id1C3F1234 +150fpm +2.5rot FL008.50 45.2dB 0e +1.2kHz gps2x3",
+      raw: 'FLR3F1234>APRS,qAS,Slovenia:/094530h4615.123N/01445.678E\'180/025/A=002500 !W77! id1C3F1234 +150fpm +2.5rot FL008.50 45.2dB 0e +1.2kHz gps2x3',
       expected: {
         messageType: 'position',
         sourceCall: 'FLR3F1234',
@@ -26,7 +26,7 @@ module.exports = {
     },
     
     glider: {
-      raw: "FLR121ABC>APRS,qAS,Austria:/101500h4712.456N/01330.789E'045/035/A=008500 !W11! id04121ABC +000fpm +0.0rot FL028.00 52.8dB 0e -0.5kHz gps1x2",
+      raw: 'FLR121ABC>APRS,qAS,Austria:/101500h4712.456N/01330.789E\'045/035/A=008500 !W11! id04121ABC +000fpm +0.0rot FL028.00 52.8dB 0e -0.5kHz gps1x2',
       expected: {
         messageType: 'position',
         sourceCall: 'FLR121ABC',
@@ -48,7 +48,7 @@ module.exports = {
     },
     
     hangGlider: {
-      raw: "FLR3A5678>APRS,qAS,Italy:/113000h4545.321N/01118.456E'270/018/A=001800 !W66! id183A5678 -200fpm -1.8rot FL005.80 38.5dB 0e +2.1kHz gps4x6",
+      raw: 'FLR3A5678>APRS,qAS,Italy:/113000h4545.321N/01118.456E\'270/018/A=001800 !W66! id183A5678 -200fpm -1.8rot FL005.80 38.5dB 0e +2.1kHz gps4x6',
       expected: {
         messageType: 'position',
         sourceCall: 'FLR3A5678',
@@ -70,7 +70,7 @@ module.exports = {
     },
     
     statusMessage: {
-      raw: "FLR3F1234>APRS,qAS,Slovenia:>094600h Pilot: John Smith",
+      raw: 'FLR3F1234>APRS,qAS,Slovenia:>094600h Pilot: John Smith',
       expected: {
         messageType: 'status',
         sourceCall: 'FLR3F1234',
@@ -80,7 +80,7 @@ module.exports = {
 
     // Реальные сообщения от коммерческих самолетов (типы 8 и 9) - координаты в пределах региона
     commercialAircraft: {
-      raw: "ICA4BCE08>OGADSB,qAS,HLST:/205511h4730.16N/01136.18E^099/444/A=034803 !W54! id254BCE08 +1664fpm FL336.85 A3:SXS9W Sq7666",
+      raw: 'ICA4BCE08>OGADSB,qAS,HLST:/205511h4730.16N/01136.18E^099/444/A=034803 !W54! id254BCE08 +1664fpm FL336.85 A3:SXS9W Sq7666',
       expected: {
         messageType: 'position',
         sourceCall: 'ICA4BCE08',
@@ -101,7 +101,7 @@ module.exports = {
     },
 
     lufthansaFlight: {
-      raw: "ICA3C674A>OGADSB,qAS,Lengfeld:/205511h4735.49N/01209.94E^112/450/A=038218 !W97! id253C674A +64fpm FL370.25 A3:DLH4YJ Sq6432",
+      raw: 'ICA3C674A>OGADSB,qAS,Lengfeld:/205511h4735.49N/01209.94E^112/450/A=038218 !W97! id253C674A +64fpm FL370.25 A3:DLH4YJ Sq6432',
       expected: {
         messageType: 'position',
         sourceCall: 'ICA3C674A',
@@ -120,7 +120,7 @@ module.exports = {
     },
 
     reciprocatingAircraft: {
-      raw: "ICA3A8234>OGADSB,qAS,Station:/120000h4720.456N/01315.234E^045/120/A=005000 !W22! id203A8234 +500fpm FL050.00 A4:CESNA172",
+      raw: 'ICA3A8234>OGADSB,qAS,Station:/120000h4720.456N/01315.234E^045/120/A=005000 !W22! id203A8234 +500fpm FL050.00 A4:CESNA172',
       expected: {
         messageType: 'position',
         sourceCall: 'ICA3A8234',
@@ -142,62 +142,62 @@ module.exports = {
   // Невалидные сообщения
   invalid: {
     // Вне региона (слишком далеко на север)
-    outOfRegion: "FLR3F1234>APRS,qAS,Norway:/094530h5015.123N/01445.678E'180/025/A=002500 !W77! id073F1234 +150fpm +2.5rot FL008.50 45.2dB 0e +1.2kHz gps2x3",
+    outOfRegion: 'FLR3F1234>APRS,qAS,Norway:/094530h5015.123N/01445.678E\'180/025/A=002500 !W77! id073F1234 +150fpm +2.5rot FL008.50 45.2dB 0e +1.2kHz gps2x3',
     
     // Неподдерживаемый тип воздушного судна (тип 2 = tow_plane)
-    unsupportedAircraft: "FLR3F1234>APRS,qAS,Slovenia:/094530h4615.123N/01445.678E'180/025/A=002500 !W77! id023F1234 +150fpm +2.5rot FL008.50 45.2dB 0e +1.2kHz gps2x3",
+    unsupportedAircraft: 'FLR3F1234>APRS,qAS,Slovenia:/094530h4615.123N/01445.678E\'180/025/A=002500 !W77! id023F1234 +150fpm +2.5rot FL008.50 45.2dB 0e +1.2kHz gps2x3',
     
     // Без OGN расширения
-    noOgnExtension: "FLR3F1234>APRS,qAS,Slovenia:/094530h4615.123N/01445.678E'180/025/A=002500 !W77!",
+    noOgnExtension: 'FLR3F1234>APRS,qAS,Slovenia:/094530h4615.123N/01445.678E\'180/025/A=002500 !W77!',
     
     // Неправильный формат координат
-    invalidCoords: "FLR3F1234>APRS,qAS,Slovenia:/094530h46XX.123N/01445.678E'180/025/A=002500 !W77! id073F1234",
+    invalidCoords: 'FLR3F1234>APRS,qAS,Slovenia:/094530h46XX.123N/01445.678E\'180/025/A=002500 !W77! id073F1234',
     
     // Не APRS сообщение (нет двоеточия)
-    notAprs: "FLR3F1234>APRS,qAS,Slovenia",
+    notAprs: 'FLR3F1234>APRS,qAS,Slovenia',
     
     // Невалидная высота (слишком высоко)
-    invalidAltitude: "FLR3F1234>APRS,qAS,Slovenia:/094530h4615.123N/01445.678E'180/025/A=099999 !W77! id1C3F1234 +150fpm +2.5rot",
+    invalidAltitude: 'FLR3F1234>APRS,qAS,Slovenia:/094530h4615.123N/01445.678E\'180/025/A=099999 !W77! id1C3F1234 +150fpm +2.5rot',
     
     // Невалидная скорость (слишком быстро для планера)
-    invalidSpeed: "FLR3F1234>APRS,qAS,Slovenia:/094530h4615.123N/01445.678E'180/999/A=002500 !W77! id043F1234 +150fpm +2.5rot",
+    invalidSpeed: 'FLR3F1234>APRS,qAS,Slovenia:/094530h4615.123N/01445.678E\'180/999/A=002500 !W77! id043F1234 +150fpm +2.5rot',
 
     // Коммерческий самолет вне расширенного региона (> 49°N)
-    aircraftOutOfRegion: "ICA4BCE08>OGADSB,qAS,HLST:/205511h4958.16N/01136.18E^099/444/A=034803 !W54! id254BCE08 +1664fpm FL336.85 A3:SXS9W Sq7666",
+    aircraftOutOfRegion: 'ICA4BCE08>OGADSB,qAS,HLST:/205511h4958.16N/01136.18E^099/444/A=034803 !W54! id254BCE08 +1664fpm FL336.85 A3:SXS9W Sq7666',
 
     // Неподдерживаемый тип воздушного судна (тип A = balloon)
-    unsupportedAircraftTypeA: "ICA4BCE08>OGADSB,qAS,HLST:/205511h4834.16N/01136.18E^099/444/A=034803 !W54! id2A4BCE08 +1664fpm FL336.85",
+    unsupportedAircraftTypeA: 'ICA4BCE08>OGADSB,qAS,HLST:/205511h4834.16N/01136.18E^099/444/A=034803 !W54! id2A4BCE08 +1664fpm FL336.85',
 
     // Неподдерживаемый тип воздушного судна (тип 2 = tow_plane) 
-    towPlaneType: "FLR3F1234>APRS,qAS,Slovenia:/094530h4615.123N/01445.678E'180/025/A=002500 !W77! id083F1234 +150fpm +2.5rot"
+    towPlaneType: 'FLR3F1234>APRS,qAS,Slovenia:/094530h4615.123N/01445.678E\'180/025/A=002500 !W77! id083F1234 +150fpm +2.5rot'
   },
   
   // Граничные случаи
   edge: {
     // Минимальные координаты региона
-    minRegionBounds: "FLR3F1234>APRS,qAS,Slovenia:/094530h4400.000N/00800.000E'180/025/A=002500 !W77! id073F1234 +150fpm +2.5rot",
+    minRegionBounds: 'FLR3F1234>APRS,qAS,Slovenia:/094530h4400.000N/00800.000E\'180/025/A=002500 !W77! id073F1234 +150fpm +2.5rot',
     
     // Максимальные координаты региона
-    maxRegionBounds: "FLR3F1234>APRS,qAS,Slovenia:/094530h4800.000N/01700.000E'180/025/A=002500 !W77! id073F1234 +150fpm +2.5rot",
+    maxRegionBounds: 'FLR3F1234>APRS,qAS,Slovenia:/094530h4800.000N/01700.000E\'180/025/A=002500 !W77! id073F1234 +150fpm +2.5rot',
     
     // Без timestamp
-    noTimestamp: "FLR3F1234>APRS,qAS,Slovenia:!4615.123N/01445.678E'180/025/A=002500 !W77! id073F1234 +150fpm +2.5rot",
+    noTimestamp: 'FLR3F1234>APRS,qAS,Slovenia:!4615.123N/01445.678E\'180/025/A=002500 !W77! id073F1234 +150fpm +2.5rot',
     
     // Нулевая скорость и climb rate
-    zeroValues: "FLR3F1234>APRS,qAS,Slovenia:/094530h4615.123N/01445.678E'000/000/A=002500 !W77! id073F1234 +000fpm +0.0rot",
+    zeroValues: 'FLR3F1234>APRS,qAS,Slovenia:/094530h4615.123N/01445.678E\'000/000/A=002500 !W77! id073F1234 +000fpm +0.0rot',
 
     // Граничный случай: координаты на новой северной границе (49°N)
-    northBoundary: "ICA4BCE08>OGADSB,qAS,HLST:/205511h4900.00N/01136.18E^099/444/A=034803 !W54! id254BCE08 +1664fpm FL336.85",
+    northBoundary: 'ICA4BCE08>OGADSB,qAS,HLST:/205511h4900.00N/01136.18E^099/444/A=034803 !W54! id254BCE08 +1664fpm FL336.85',
 
     // Все поддерживаемые типы воздушных судов
-    aircraftType1: "FLR3F1234>APRS,qAS,Slovenia:/094530h4615.123N/01445.678E'180/025/A=002500 !W77! id043F1234 +150fpm", // glider
-    aircraftType6: "FLR3F1234>APRS,qAS,Slovenia:/094530h4615.123N/01445.678E'180/025/A=002500 !W77! id183F1234 +150fpm", // hang_glider  
-    aircraftType7: "FLR3F1234>APRS,qAS,Slovenia:/094530h4615.123N/01445.678E'180/025/A=002500 !W77! id1C3F1234 +150fpm", // paraglider
-    aircraftType8: "ICA3F1234>OGADSB,qAS,Station:/120000h4720.456N/01315.234E'045/120/A=005000 !W22! id203F1234 +500fpm", // reciprocating
-    aircraftType9: "ICA3F1234>OGADSB,qAS,Station:/120000h4720.456N/01315.234E'045/120/A=005000 !W22! id243F1234 +500fpm", // jet
+    aircraftType1: 'FLR3F1234>APRS,qAS,Slovenia:/094530h4615.123N/01445.678E\'180/025/A=002500 !W77! id043F1234 +150fpm', // glider
+    aircraftType6: 'FLR3F1234>APRS,qAS,Slovenia:/094530h4615.123N/01445.678E\'180/025/A=002500 !W77! id183F1234 +150fpm', // hang_glider  
+    aircraftType7: 'FLR3F1234>APRS,qAS,Slovenia:/094530h4615.123N/01445.678E\'180/025/A=002500 !W77! id1C3F1234 +150fpm', // paraglider
+    aircraftType8: 'ICA3F1234>OGADSB,qAS,Station:/120000h4720.456N/01315.234E\'045/120/A=005000 !W22! id203F1234 +500fpm', // reciprocating
+    aircraftType9: 'ICA3F1234>OGADSB,qAS,Station:/120000h4720.456N/01315.234E\'045/120/A=005000 !W22! id243F1234 +500fpm', // jet
 
     // Тестирование stealth mode и no-tracking флагов
-    stealthMode: "ICA3F1234>OGADSB,qAS,Station:/120000h4720.456N/01315.234E'045/120/A=005000 !W22! idA43F1234 +500fpm", // stealth=1, type=9
-    noTracking: "ICA3F1234>OGADSB,qAS,Station:/120000h4720.456N/01315.234E'045/120/A=005000 !W22! id643F1234 +500fpm"   // no-track=1, type=9
+    stealthMode: 'ICA3F1234>OGADSB,qAS,Station:/120000h4720.456N/01315.234E\'045/120/A=005000 !W22! idA43F1234 +500fpm', // stealth=1, type=9
+    noTracking: 'ICA3F1234>OGADSB,qAS,Station:/120000h4720.456N/01315.234E\'045/120/A=005000 !W22! id643F1234 +500fpm'   // no-track=1, type=9
   }
 };

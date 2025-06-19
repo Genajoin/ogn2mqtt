@@ -1,5 +1,5 @@
 const FANETConverter = require('../lib/fanet-converter');
-const testData = require('./fixtures/aprs-messages');
+const _testData = require('./fixtures/aprs-messages'); // eslint-disable-line no-unused-vars
 
 describe('FANETConverter', () => {
   let converter;

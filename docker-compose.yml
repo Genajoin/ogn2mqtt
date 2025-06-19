@@ -11,7 +11,7 @@ services:
       - OGN_APRS_PORT=14580
       - OGN_APRS_CALLSIGN=OGN2MQTT
       - OGN_APRS_PASSCODE=-1
-      - OGN_APRS_FILTER=m/120 46.5/13.5
+      - OGN_APRS_FILTER=r/46.5/13.5/200
       
       # Target MQTT (same as mqtt2mqtt)
       - TARGET_MQTT_URL=tcp://localhost:1883
