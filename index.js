@@ -4,6 +4,7 @@ const OGNClient = require('./lib/ogn-client');
 const APRSParser = require('./lib/aprs-parser');
 const FANETConverter = require('./lib/fanet-converter');
 const MessageFilter = require('./lib/message-filter');
+const PrometheusMetrics = require('./lib/metrics');
 
 class OGN2MQTT {
   constructor() {
@@ -12,6 +13,7 @@ class OGN2MQTT {
     this.aprsParser = null;
     this.fanetConverter = null;
     this.messageFilter = null;
+    this.metrics = null;
         
     this.stats = {
       startTime: new Date(),
@@ -64,6 +66,12 @@ class OGN2MQTT {
       logging: {
         level: process.env.LOG_LEVEL || 'info',
         debug: process.env.ENABLE_DEBUG === 'true'
+      },
+            
+      // Prometheus метрики
+      metrics: {
+        enabled: process.env.METRICS_ENABLED !== 'false',
+        port: parseInt(process.env.METRICS_PORT) || 9091
       }
     };
   }
@@ -81,11 +89,23 @@ class OGN2MQTT {
       rateLimitSeconds: this.config.filtering.rateLimitSeconds,
       maxMessageAge: this.config.filtering.maxMessageAge
     }, this.log.bind(this));
+
+    // Инициализация Prometheus метрик
+    this.metrics = new PrometheusMetrics(this.config.metrics);
   }
 
   async start() {
     try {
       this.log('info', 'Запуск OGN2MQTT bridge...');
+            
+      // Запуск сервера метрик
+      if (this.config.metrics.enabled) {
+        await this.metrics.startServer();
+        this.log('info', 'Prometheus metrics сервер запущен', {
+          port: this.config.metrics.port,
+          endpoint: `http://localhost:${this.config.metrics.port}/metrics`
+        });
+      }
             
       // Подключение к MQTT
       await this.connectMQTT();
@@ -134,6 +154,7 @@ class OGN2MQTT {
 
       this.mqttClient.on('connect', () => {
         this.log('info', 'MQTT подключение успешно');
+        this.metrics.setMqttConnectionStatus(true);
         resolve();
       });
 
@@ -144,6 +165,7 @@ class OGN2MQTT {
 
       this.mqttClient.on('close', () => {
         this.log('warn', 'MQTT соединение закрыто');
+        this.metrics.setMqttConnectionStatus(false);
       });
 
       this.mqttClient.on('reconnect', () => {
@@ -158,6 +180,7 @@ class OGN2MQTT {
     // Обработчики событий OGN
     this.ognClient.on('connect', () => {
       this.log('info', 'OGN APRS подключение успешно');
+      this.metrics.setOgnConnectionStatus(true);
     });
 
     this.ognClient.on('login-success', () => {
@@ -175,14 +198,18 @@ class OGN2MQTT {
 
     this.ognClient.on('disconnect', () => {
       this.log('warn', 'OGN отключен');
+      this.metrics.setOgnConnectionStatus(false);
     });
 
     return this.ognClient.connect();
   }
 
   handleAPRSMessage(rawMessage) {
+    const endTimer = this.metrics.startMessageProcessingTimer();
+    
     try {
       this.stats.ognMessages++;
+      this.metrics.incrementOgnMessages();
             
       // Парсинг APRS сообщения
       const parsedData = this.aprsParser.parse(rawMessage);
@@ -191,6 +218,7 @@ class OGN2MQTT {
       }
 
       this.stats.parsedMessages++;
+      this.metrics.incrementParsedMessages();
 
       // Валидация данных
       if (!this.aprsParser.validateData(parsedData)) {
@@ -216,6 +244,7 @@ class OGN2MQTT {
       }
 
       this.stats.convertedMessages++;
+      this.metrics.incrementConvertedMessages();
 
       // Публикация в MQTT
       this.publishToMQTT(fanetData, parsedData);
@@ -223,6 +252,10 @@ class OGN2MQTT {
     } catch (error) {
       this.log('error', 'Ошибка обработки APRS сообщения:', error);
       this.stats.errors++;
+      this.metrics.incrementErrors('aprs_processing');
+    } finally {
+      // Завершаем измерение времени обработки
+      endTimer();
     }
   }
 
@@ -231,8 +264,10 @@ class OGN2MQTT {
       if (error) {
         this.log('error', 'Ошибка публикации в MQTT:', error);
         this.stats.errors++;
+        this.metrics.incrementErrors('mqtt_publish');
       } else {
         this.stats.publishedMessages++;
+        this.metrics.incrementPublishedMessages();
         this.log('debug', 'Сообщение опубликовано', {
           deviceId: originalData.deviceId,
           aircraftType: originalData.aircraftTypeName,
@@ -252,6 +287,12 @@ class OGN2MQTT {
       const uptime = Math.floor((Date.now() - this.stats.startTime.getTime()) / 1000);
       const filterStats = this.messageFilter.getStats();
       const ognStatus = this.ognClient.getStatus();
+      const activeDevicesCount = this.messageFilter.getActiveDevices().length;
+            
+      // Обновляем Prometheus метрики
+      this.metrics.updateUptime(this.stats.startTime);
+      this.metrics.setActiveDevices(activeDevicesCount);
+      this.metrics.setFilteredMessagesRate(filterStats.filteredPerSecond || 0);
             
       this.log('info', 'Статистика работы', {
         uptime: `${Math.floor(uptime/3600)}:${Math.floor((uptime%3600)/60).toString().padStart(2,'0')}:${(uptime%60).toString().padStart(2,'0')}`,
@@ -268,7 +309,8 @@ class OGN2MQTT {
           errors: this.stats.errors
         },
         filtering: filterStats,
-        activeDevices: this.messageFilter.getActiveDevices().length
+        activeDevices: activeDevicesCount,
+        metricsServer: this.metrics.getServerStatus()
       });
     }, 300000); // 5 минут
   }
@@ -286,6 +328,12 @@ class OGN2MQTT {
     
     if (this.messageFilter && this.messageFilter.cleanup) {
       this.messageFilter.cleanup();
+    }
+
+    // Остановка сервера метрик
+    if (this.metrics) {
+      await this.metrics.stopServer();
+      this.log('info', 'Prometheus metrics сервер остановлен');
     }
         
     this.log('info', 'OGN2MQTT bridge остановлен');

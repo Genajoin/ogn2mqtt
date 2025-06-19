@@ -27,7 +27,8 @@
   "license": "ISC",
   "dependencies": {
     "dotenv": "^16.0.3",
-    "mqtt": "^5.0.0"
+    "mqtt": "^5.0.0",
+    "prom-client": "^15.1.0"
   },
   "devDependencies": {
     "eslint": "^9.29.0",

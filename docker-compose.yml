@@ -5,6 +5,8 @@ services:
     build: .
     container_name: ogn2mqtt-bridge
     restart: unless-stopped
+    ports:
+      - "9091:9091"  # Prometheus metrics
     environment:
       # OGN APRS Connection
       - OGN_APRS_SERVER=aprs.glidernet.org
@@ -34,10 +36,21 @@ services:
       - LOG_LEVEL=info
       - ENABLE_DEBUG=false
       
-    network_mode: host
+      # Prometheus Metrics
+      - METRICS_ENABLED=true
+      - METRICS_PORT=9091
+      
+    networks:
+      - monitoring
+    external_links:
+      - mqtt:mqtt  # Подключение к MQTT брокеру из основной инфраструктуры
     healthcheck:
       test: ["CMD", "node", "-e", "process.exit(0)"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
+
+networks:
+  monitoring:
+    external: true
