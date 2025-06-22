@@ -89,7 +89,27 @@ describe('OGN2MQTT Integration Tests', () => {
       expect(app.config.ogn.server).toBe('test.server.com');
       expect(app.config.mqtt.url).toBe('tcp://test.mqtt:1883');
       expect(app.config.mqtt.topic).toBe('test/topic');
-      expect(app.config.filtering.aircraftTypes).toEqual([1, 6, 7, 8, 9]);
+      expect(app.config.filtering.aircraftTypes).toEqual([1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12]);
+      expect(app.config.filtering.trackAircraftTypes).toEqual([]);
+    });
+
+    test('должен правильно парсить переменную TRACK_AIRCRAFT_TYPES', () => {
+      // Сохраняем оригинальное значение
+      const originalValue = process.env.TRACK_AIRCRAFT_TYPES;
+      
+      // Устанавливаем тестовое значение
+      process.env.TRACK_AIRCRAFT_TYPES = '3,10,12';
+      
+      const testApp = new OGN2MQTT();
+      
+      expect(testApp.config.filtering.trackAircraftTypes).toEqual([3, 10, 12]);
+      
+      // Восстанавливаем оригинальное значение
+      if (originalValue !== undefined) {
+        process.env.TRACK_AIRCRAFT_TYPES = originalValue;
+      } else {
+        delete process.env.TRACK_AIRCRAFT_TYPES;
+      }
     });
 
     test('должен инициализировать все компоненты', () => {

@@ -72,8 +72,8 @@ async function demonstrateMetrics() {
       // Показываем только наши метрики (не системные Node.js)
       const lines = response.data.split('\n');
       const ognMetrics = lines.filter(line => 
-        line.startsWith('ogn_') || line.startsWith('mqtt_') || 
-        (line.startsWith('#') && (line.includes('ogn_') || line.includes('mqtt_')))
+        line.startsWith('ogn2mqtt_') || line.startsWith('mqtt_') || 
+        (line.startsWith('#') && (line.includes('ogn2mqtt_') || line.includes('mqtt_')))
       );
       
       console.log('🎯 OGN2MQTT метрики:');

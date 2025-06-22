@@ -20,7 +20,7 @@ describe('APRSParser', () => {
   describe('конструктор и конфигурация', () => {
     test('должен создаваться с настройками по умолчанию', () => {
       const defaultParser = new APRSParser();
-      expect(defaultParser.config.allowedAircraftTypes).toEqual([1, 6, 7]);
+      expect(defaultParser.config.allowedAircraftTypes).toEqual([1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12]);
       expect(defaultParser.config.regionBounds.latMin).toBe(44.0);
       expect(defaultParser.config.regionBounds.latMax).toBe(48.0);
       expect(defaultParser.config.regionBounds.lonMin).toBe(8.0);
@@ -449,6 +449,88 @@ describe('APRSParser', () => {
       expect(parser.parseOGNExtension('Обычный комментарий')).toBeNull();
       expect(parser.parseOGNExtension('')).toBeNull();
       expect(parser.parseOGNExtension(null)).toBeNull();
+    });
+  });
+
+  describe('отслеживание типов воздушных судов', () => {
+    let mockLogger;
+    let parser;
+
+    beforeEach(() => {
+      mockLogger = jest.fn();
+      parser = new APRSParser({
+        allowedAircraftTypes: [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12],
+        trackAircraftTypes: [3, 10] // отслеживаем только вертолеты и шары
+      }, mockLogger);
+    });
+
+    test('должен логировать отслеживаемые типы на уровне info', () => {
+      // Создаем сообщение с вертолетом на основе валидного шаблона
+      // id0C = 0x0C = 00001100 = type 3 (bits 5-2), addr 0 (bits 1-0)
+      const helicopterMessage = 'FLR3F1234>APRS,qAS,Slovenia:/094530h4615.123N/01445.678E\'180/025/A=002500 !W77! id0C3F1234 +150fpm +2.5rot FL008.50 45.2dB 0e +1.2kHz gps2x3';
+      
+      const result = parser.parse(helicopterMessage);
+      
+      expect(result).not.toBeNull();
+      expect(result.aircraftType).toBe(3);
+      
+      // Проверяем, что было записано в лог отслеживания
+      expect(mockLogger).toHaveBeenCalledWith(
+        'info',
+        '[APRS-PARSER] Обнаружен отслеживаемый тип ЛА: helicopter (3) - устройство 3F1234',
+        expect.objectContaining({
+          aircraftType: 3,
+          aircraftTypeName: 'helicopter',
+          deviceId: '3F1234',
+          sourceCall: 'FLR3F1234'
+        })
+      );
+    });
+
+    test('не должен логировать неотслеживаемые типы', () => {
+      // Парсим сообщение с планером (тип 1) - не отслеживается
+      const result = parser.parse(testData.valid.glider.raw);
+      
+      expect(result).not.toBeNull();
+      expect(result.aircraftType).toBe(1);
+      
+      // Проверяем, что логирование НЕ произошло
+      const trackingLogCalls = mockLogger.mock.calls.filter(call => 
+        call[1] && call[1].includes('Обнаружен отслеживаемый тип ЛА')
+      );
+      expect(trackingLogCalls).toHaveLength(0);
+    });
+
+    test('должен корректно обрабатывать пустой список отслеживания', () => {
+      const parserNoTracking = new APRSParser({
+        allowedAircraftTypes: [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12],
+        trackAircraftTypes: [] // пустой список
+      }, mockLogger);
+      
+      const result = parserNoTracking.parse(testData.valid.paraglider.raw);
+      
+      expect(result).not.toBeNull();
+      
+      // Проверяем, что логирование НЕ произошло
+      const trackingLogCalls = mockLogger.mock.calls.filter(call => 
+        call[1] && call[1].includes('Обнаружен отслеживаемый тип ЛА')
+      );
+      expect(trackingLogCalls).toHaveLength(0);
+    });
+
+    test('должен логировать правильное имя типа воздушного судна', () => {
+      parser.logTrackedAircraft(3, 'ABC123', 'TEST');
+      
+      expect(mockLogger).toHaveBeenCalledWith(
+        'info',
+        '[APRS-PARSER] Обнаружен отслеживаемый тип ЛА: helicopter (3) - устройство ABC123',
+        {
+          aircraftType: 3,
+          aircraftTypeName: 'helicopter',
+          deviceId: 'ABC123',
+          sourceCall: 'TEST'
+        }
+      );
     });
   });
 });

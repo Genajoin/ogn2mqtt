@@ -51,7 +51,9 @@ class OGN2MQTT {
             
       // Фильтрация
       filtering: {
-        aircraftTypes: (process.env.AIRCRAFT_TYPES || '1,6,7,8,9').split(',').map(t => parseInt(t.trim())),
+        aircraftTypes: (process.env.AIRCRAFT_TYPES || '1,2,3,5,6,7,8,9,10,11,12').split(',').map(t => parseInt(t.trim())),
+        trackAircraftTypes: process.env.TRACK_AIRCRAFT_TYPES ? 
+          process.env.TRACK_AIRCRAFT_TYPES.split(',').map(t => parseInt(t.trim())) : [],
         regionBounds: {
           latMin: parseFloat(process.env.REGION_LAT_MIN || '44.0'),
           latMax: parseFloat(process.env.REGION_LAT_MAX || '48.0'),
@@ -80,6 +82,7 @@ class OGN2MQTT {
     // Инициализация компонентов
     this.aprsParser = new APRSParser({
       allowedAircraftTypes: this.config.filtering.aircraftTypes,
+      trackAircraftTypes: this.config.filtering.trackAircraftTypes,
       regionBounds: this.config.filtering.regionBounds
     }, this.log.bind(this));
 

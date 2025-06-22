@@ -45,7 +45,7 @@ describe('PrometheusMetrics', () => {
       metrics.incrementOgnMessages();
       
       const metricsString = await metrics.register.metrics();
-      expect(metricsString).toContain('ogn_messages_received_total 2');
+      expect(metricsString).toContain('ogn2mqtt_messages_received_total 2');
     });
 
     test('должен устанавливать gauge значения', async () => {
@@ -54,9 +54,9 @@ describe('PrometheusMetrics', () => {
       metrics.setMqttConnectionStatus(false);
       
       const metricsString = await metrics.register.metrics();
-      expect(metricsString).toContain('ogn_active_devices 42');
-      expect(metricsString).toContain('ogn_connection_status 1');
-      expect(metricsString).toContain('mqtt_connection_status 0');
+      expect(metricsString).toContain('ogn2mqtt_active_devices 42');
+      expect(metricsString).toContain('ogn2mqtt_connection_status 1');
+      expect(metricsString).toContain('ogn2mqtt_mqtt_connection_status 0');
     });
 
     test('должен обновлять uptime', async () => {
@@ -64,7 +64,7 @@ describe('PrometheusMetrics', () => {
       metrics.updateUptime(startTime);
       
       const metricsString = await metrics.register.metrics();
-      const uptimeMatch = metricsString.match(/ogn_uptime_seconds (\d+)/);
+      const uptimeMatch = metricsString.match(/ogn2mqtt_uptime_seconds (\d+)/);
       expect(uptimeMatch).toBeTruthy();
       const uptimeValue = parseInt(uptimeMatch[1]);
       expect(uptimeValue).toBeGreaterThanOrEqual(4);
@@ -105,8 +105,8 @@ describe('PrometheusMetrics', () => {
       
       expect(response.statusCode).toBe(200);
       expect(response.headers['content-type']).toContain('text/plain');
-      expect(response.data).toContain('ogn_messages_received_total');
-      expect(response.data).toContain('ogn_active_devices');
+      expect(response.data).toContain('ogn2mqtt_messages_received_total');
+      expect(response.data).toContain('ogn2mqtt_active_devices');
       expect(response.data).toContain('ogn2mqtt_nodejs_'); // Стандартные Node.js метрики
     });
 

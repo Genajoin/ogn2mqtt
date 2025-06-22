@@ -10,9 +10,20 @@ describe('FANETConverter', () => {
 
   describe('конструктор и маппинг типов', () => {
     test('должен инициализироваться с правильным маппингом типов воздушных судов', () => {
+      expect(converter.aircraftTypeMapping[0]).toBe(0); // unknown -> other
       expect(converter.aircraftTypeMapping[1]).toBe(4); // glider -> glider
+      expect(converter.aircraftTypeMapping[2]).toBe(5); // tow_plane -> aircraft
+      expect(converter.aircraftTypeMapping[3]).toBe(6); // helicopter -> helicopter
+      expect(converter.aircraftTypeMapping[4]).toBe(0); // parachute -> other
+      expect(converter.aircraftTypeMapping[5]).toBe(5); // drop_plane -> aircraft
       expect(converter.aircraftTypeMapping[6]).toBe(2); // hang_glider -> hangglider  
       expect(converter.aircraftTypeMapping[7]).toBe(1); // paraglider -> paraglider
+      expect(converter.aircraftTypeMapping[8]).toBe(5); // aircraft_reciprocating -> aircraft
+      expect(converter.aircraftTypeMapping[9]).toBe(5); // aircraft_jet -> aircraft
+      expect(converter.aircraftTypeMapping[10]).toBe(3); // balloon -> balloon
+      expect(converter.aircraftTypeMapping[11]).toBe(5); // airship -> aircraft
+      expect(converter.aircraftTypeMapping[12]).toBe(7); // uav -> uav
+      expect(converter.aircraftTypeMapping[13]).toBe(0); // static_obstacle -> other
     });
   });
 
@@ -67,7 +78,7 @@ describe('FANETConverter', () => {
         latitude: 46.0,
         longitude: 14.0,
         deviceId: '3F1234',
-        aircraftType: 2 // tow_plane - не поддерживается
+        aircraftType: 15 // несуществующий тип - не поддерживается
       };
       
       expect(converter.isValidForConversion(unsupportedType)).toBe(false);
@@ -402,6 +413,35 @@ describe('FANETConverter', () => {
       expect(result).not.toBeNull();
       expect(result).toBeInstanceOf(Buffer);
       expect(result.length).toBeGreaterThan(8);
+    });
+
+    test('должен конвертировать данные вертолета с новым маппингом', () => {
+      const helicopterData = {
+        messageType: 'position',
+        deviceId: '3F5678',
+        latitude: 46.0,
+        longitude: 14.0,
+        altitude: 1500,
+        speed: 120,
+        climbRate: 2.5,
+        course: 90,
+        aircraftType: 3, // helicopter
+        receivedTime: new Date(),
+        signalStrength: 50.0
+      };
+      
+      const result = converter.convertToMQTTFormat(helicopterData);
+      
+      expect(result).not.toBeNull();
+      expect(result).toBeInstanceOf(Buffer);
+      
+      // Проверяем, что тип воздушного судна правильно закодирован в altitude status
+      // MQTT обертка: [timestamp 4B][rssi 2B][snr 2B] = 8 байт
+      // FANET пакет: [header 1B][source_addr 3B][lat 3B][lon 3B][alt_status 2B]
+      // Извлекаем биты 14-12 из altitude status (offset 8 + 1 + 3 + 3 + 3 = 18)
+      const altStatus = result.readUInt16LE(8 + 1 + 3 + 3 + 3);
+      const fanetType = (altStatus >> 12) & 0x07;
+      expect(fanetType).toBe(6); // helicopter -> FANET helicopter (6)
     });
   });
 });
